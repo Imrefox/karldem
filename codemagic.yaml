@@ -1,0 +1,132 @@
+workflows:
+  android-workflow:
+    name: Android Workflow    
+    environment:
+      android_signing:
+        - codemagic_upload
+      vars:
+        PACKAGE_NAME: io.codemagic.kapp        
+      groups:
+        - google_credentials
+      flutter: 3.38.5
+      xcode: 26
+    triggering:
+      events:
+        - push #pull_request #tags
+      branch_patterns:
+        - pattern: 'develop'
+      cancel_previous_builds: true
+    scripts:
+      - name: Set up local.properties
+        script: | 
+          echo "flutter.sdk=$HOME/programs/flutter" > "$CM_BUILD_DIR/android/local.properties"
+      - name: Get Flutter packages
+        script: | 
+          flutter pub get
+      - name: Flutter analyze
+        script: | 
+          flutter analyze
+      - name: Flutter unit tests
+        script: | 
+          #flutter test
+          mkdir -p test-results
+          flutter test --machine > test-results/flutter.json
+        test_report: test-results/flutter.json
+        ignore_failure: true
+      - name: Build AAB with Flutter
+        script: |    
+          LATEST_BUILD_NUMBER=$(google-play get-latest-build-number --package-name 'io.codemagic.kapp')
+          echo "Latest build number on Google Play: $LATEST_BUILD_NUMBER"
+        
+          flutter build appbundle --release \
+            --build-name=1.0.$BUILD_NUMBER \
+            --build-number=$BUILD_NUMBER
+    artifacts:
+      - build/**/outputs/**/*.aab
+      - flutter_drive.log
+    publishing:
+      email:
+        recipients:
+          - karl.suhajda@yahoo.com
+        notify:
+          success: true
+          failure: false
+     #slack:
+        #channel: '#channel-name'
+        #notify_on_build_start: true  
+        #notify:
+         #success: false  
+         #failure: false            
+      google_play: 
+        credentials: $GOOGLE_PLAY_SERVICE_ACCOUNT_CREDENTIALS
+        track: internal
+        submit_as_draft: true
+
+
+
+
+
+  ios-workflow:
+    name: iOS Workflow    
+    integrations:
+      app_store_connect: app_store_api_key
+    environment:
+      ios_signing:
+        distribution_type: app_store
+        bundle_identifier: io.codemagic.kapp
+      vars:
+        APP_ID: 6756919443
+      flutter: 3.38.5
+      xcode: 26
+      cocoapods: default
+    triggering:
+      events:
+        - push #pull_request #tags
+      branch_patterns:
+        - pattern: 'develop' 
+      cancel_previous_builds: true
+    scripts:
+      - name: Set up code signing settings on Xcode project
+        script: |
+          xcode-project use-profiles
+      - name: Get Flutter packages
+        script: |
+          flutter packages pub get
+      - name: Install pods
+        script: |
+          find . -name "Podfile" -execdir pod install \;
+      - name: Flutter analyze
+        script: |
+          flutter analyze
+      - name: Flutter unit tests
+        script: |
+          #flutter test
+          mkdir -p test-results
+          flutter test --machine > test-results/flutter.json
+        test_report: test-results/flutter.json
+        ignore_failure: true
+      - name: Flutter build ipa and automatic versioning
+        script: |
+          flutter build ipa --release \
+            --build-name=1.0.0 \
+            --build-number=$(($(app-store-connect get-latest-testflight-build-number --platform=IOS "$APP_ID") + 1)) \
+            --export-options-plist=/Users/builder/export_options.plist
+    artifacts:
+      - build/ios/ipa/*.ipa
+      - /tmp/xcodebuild_logs/*.log
+      - flutter_drive.log
+    publishing:
+      email:
+        recipients:
+          - karl.suhajda@yahoo.com
+        notify:
+          success: true
+          failure: false
+      #slack:
+        #channel: '#channel-name'
+        #notify_on_build_start: true  
+        #notify:
+         #success: false  
+         #failure: false    
+      app_store_connect:
+        auth: integration
