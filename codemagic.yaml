@@ -5,7 +5,8 @@ workflows:
       android_signing:
         - karldem
       vars:
-        PACKAGE_NAME: io.codemagic.karldem              
+        PACKAGE_NAME: io.codemagic.karldem
+        GOOGLE_PLAY_TRACK: internal  # <--- Define it here once              
       groups:
         - google_karldem
       flutter: 3.41.4
@@ -35,10 +36,17 @@ workflows:
         ignore_failure: true
       - name: Build AAB with Flutter
         script: |    
-          BUILD_NUMBER=$(($(google-play get-latest-build-number --package-name "$PACKAGE_NAME" --tracks="$GOOGLE_PLAY_TRACK") + 1))      
+          #BUILD_NUMBER=$(($(google-play get-latest-build-number --package-name "$PACKAGE_NAME" --tracks="$GOOGLE_PLAY_TRACK") + 1))      
+          #flutter build appbundle --release \
+          # --build-name=1.0.$BUILD_NUMBER \
+          # --build-number=$BUILD_NUMBER
+          # Now this script can see $GOOGLE_PLAY_TRACK
+          LATEST_BUILD=$(google-play get-latest-build-number --package-name "$PACKAGE_NAME" --track="$GOOGLE_PLAY_TRACK")
+          NEW_BUILD_NUMBER=$((${LATEST_BUILD:-0} + 1))
+          
           flutter build appbundle --release \
-            --build-name=1.0.$BUILD_NUMBER \
-            --build-number=$BUILD_NUMBER
+            --build-name="1.0.$NEW_BUILD_NUMBER" \
+            --build-number=$NEW_BUILD_NUMBER
     artifacts:
       - build/**/outputs/**/*.aab
       - flutter_drive.log
@@ -57,7 +65,8 @@ workflows:
          #failure: false            
       google_play: 
         credentials: $GOOGLE_PLAY_SERVICE_ACCOUNT_CREDENTIALS
-        track: internal
+        #track: internal
+        track: $GOOGLE_PLAY_TRACK  # <--- Use the variable here
         submit_as_draft: true
 
 
