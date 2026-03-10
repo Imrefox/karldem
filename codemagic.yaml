@@ -49,22 +49,23 @@ workflows:
             #--build-name="1.0.$NEW_BUILD_NUMBER" \
             #--build-number=$NEW_BUILD_NUMBER
 
-          # 1. Fetch from Google Play (if this fails, it defaults to 0)
+          # 1. Fetch latest from Google Play
           LATEST_GOOGLE_BUILD=$(google-play get-latest-build-number --package-name "$PACKAGE_NAME" --track="$GOOGLE_PLAY_TRACK")
           
-          # 2. Use Codemagic's own internal BUILD_NUMBER as a backup
-          # This ensures that even if Google Play returns 0, the number increases every time you click 'Build'
-          # We add a high offset (like 100) just to jump over any small numbers already used
-          FINAL_BUILD_NUMBER=$((${LATEST_GOOGLE_BUILD:-0} + $BUILD_NUMBER + 10))
+          # 2. Calculate the new number (adding 5 to be safe)
+          # We use a unique name: NEW_BUILD_NUMBER to match your Gradle file
+          export NEW_BUILD_NUMBER=$((${LATEST_GOOGLE_BUILD:-0} + $BUILD_NUMBER + 5))
           
-          echo "Latest on Play Store: $LATEST_GOOGLE_BUILD"
-          echo "Codemagic Build Count: $BUILD_NUMBER"
-          echo "Final Version Code for this build: $FINAL_BUILD_NUMBER"
+          # 3. CRITICAL: Push this variable to the Codemagic environment file
+          # This is what allows your build.gradle.kts to see it!
+          echo "NEW_BUILD_NUMBER=$NEW_BUILD_NUMBER" >> $CM_ENV
+          
+          echo "Building with Version Code: $NEW_BUILD_NUMBER"
 
-          # 3. Build and EXPLICITLY pass the number
+          # 4. Run the build
           flutter build appbundle --release \
-            --build-name="1.0.$FINAL_BUILD_NUMBER" \
-            --build-number=$FINAL_BUILD_NUMBER  
+            --build-name="1.0.$NEW_BUILD_NUMBER" \
+            --build-number=$NEW_BUILD_NUMBER 
     artifacts:
       - build/**/outputs/**/*.aab
       - flutter_drive.log
