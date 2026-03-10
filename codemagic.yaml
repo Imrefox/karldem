@@ -5,11 +5,9 @@ workflows:
       android_signing:
         - karldem
       vars:
-        PACKAGE_NAME: io.codemagic.karldem 
-        # Explicitly map your custom variable to the system default
-        GOOGLE_PLAY_SERVICE_ACCOUNT_CREDENTIALS: $KARLDEM_SERVICE_ACCOUNT_CREDS       
+        PACKAGE_NAME: io.codemagic.karldem              
       groups:
-        - google_credentials
+        - google_karldem
       flutter: 3.41.4
       xcode: 26.3
     triggering:
@@ -60,7 +58,7 @@ workflows:
          #success: false  
          #failure: false            
       google_play: 
-        credentials: $KARLDEM_SERVICE_ACCOUNT_CREDS
+        credentials: $GOOGLE_PLAY_SERVICE_ACCOUNT_CREDENTIALS
         track: internal
         submit_as_draft: true
 
