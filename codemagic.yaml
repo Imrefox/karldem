@@ -61,8 +61,8 @@ workflows:
          #failure: false            
       google_play: 
         credentials: $GOOGLE_PLAY_SERVICE_ACCOUNT_CREDENTIALS
-        track: internal
-        #track: $GOOGLE_PLAY_TRACK  # <--- Use the variable here
+        #track: internal
+        track: $GOOGLE_PLAY_TRACK  # <--- Use the variable here
         submit_as_draft: true
 
 
